@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Amortização</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#04070C;
+    --panel:#0D1520;
+    --panel-alt:#111B29;
+    --line:#1E2C3E;
+    --ink:#F2F5F9;
+    --ink-soft:#8C9BAF;
+    --blue:#2F6FED;
+    --blue-dark:#1D4ED8;
+    --blue-glow:rgba(47,111,237,0.18);
+    --highlight:#3FD0FF;
+    --highlight-bg:rgba(63,208,255,0.10);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 500px at 15% -10%, var(--blue-glow), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    padding:32px 20px 64px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .brand-mark{
+    width:34px;height:34px;border-radius:8px;
+    background:linear-gradient(135deg, var(--blue), var(--highlight));
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Sora",sans-serif;font-weight:700;font-size:1rem;color:#04070C;
+  }
+  .brand-name{font-family:"Sora",sans-serif;font-weight:600;font-size:1rem;letter-spacing:0.02em;color:var(--ink);}
+  .brand-tag{font-size:0.78rem;color:var(--ink-soft);}
+  h1{
+    font-family:"Sora",sans-serif;
+    font-size:2rem;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:1.02rem;
+    margin:0 0 32px;
+    max-width:60ch;
+    line-height:1.55;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .card h2{font-family:"Sora",sans-serif;font-size:1.05rem;margin:0 0 4px;font-weight:600;color:var(--ink);}
+  .card h2.with-sub{margin-bottom:16px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field.full{grid-column:1/-1;}
+  label{font-size:0.82rem;color:var(--ink-soft);}
+  input, select{
+    font-family:"Inter",sans-serif;
+    font-size:0.95rem;
+    padding:10px 11px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:var(--panel-alt);
+    color:var(--ink);
+  }
+  input::placeholder{color:#5B6B80;}
+  input:focus, select:focus{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue);}
+  select{accent-color:var(--blue);}
+  .compare-toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.9rem;
+    color:var(--ink-soft);
+    margin-bottom:16px;
+    cursor:pointer;
+  }
+  .compare-toggle input{width:auto;padding:0;accent-color:var(--blue);}
+  #compareFields{display:none;}
+  #compareFields.show{display:grid;}
+  .preset-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .preset-btn{
+    font-family:"Inter",sans-serif;
+    background:var(--panel-alt);
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    padding:9px 14px;
+    font-size:0.85rem;
+    font-weight:500;
+    border-radius:20px;
+    cursor:pointer;
+    margin-top:0;
+    transition:all 0.15s;
+  }
+  .preset-btn:hover{border-color:var(--blue);color:var(--ink);background:var(--panel-alt);}
+  .preset-btn.active{background:var(--blue);border-color:var(--blue);color:#FFFFFF;}
+  #mesesPersonalizado{padding:9px 11px;}
+  #parcelaInformadaField.disabled{opacity:0.4;pointer-events:none;}
+  button{
+    font-family:"Inter",sans-serif;
+    background:var(--blue);
+    color:#FFFFFF;
+    border:none;
+    padding:12px 22px;
+    font-size:0.95rem;
+    font-weight:600;
+    border-radius:7px;
+    cursor:pointer;
+    margin-top:20px;
+    transition:background 0.15s;
+  }
+  button:hover{background:var(--blue-dark);}
+  button.secondary{
+    background:transparent;
+    color:var(--highlight);
+    border:1px solid #274158;
+    margin-top:0;
+    padding:8px 16px;
+    font-size:0.85rem;
+  }
+  button.secondary:hover{background:var(--highlight-bg);}
+  .results{display:none;}
+  .results.show{display:block;}
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:14px;
+    margin-bottom:24px;
+  }
+  .stat{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .stat .label{font-size:0.75rem;color:var(--ink-soft);margin-bottom:6px;}
+  .stat .value{font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .stat.savings{background:var(--highlight-bg);border-color:#1E4A5C;}
+  .stat.savings .value{color:var(--highlight);}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:"Inter",sans-serif;
+    font-size:0.85rem;
+    font-variant-numeric:tabular-nums;
+  }
+  thead th{
+    text-align:right;
+    padding:10px 10px;
+    border-bottom:1px solid var(--line);
+    color:var(--ink-soft);
+    font-weight:600;
+    font-size:0.75rem;
+  }
+  thead th:first-child, tbody td:first-child{text-align:left;}
+  tbody td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);color:var(--ink);}
+  tbody tr:hover{background:var(--panel-alt);}
+  .table-scroll{max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;}
+  thead{position:sticky;top:0;background:var(--panel);}
+  .note{font-size:0.8rem;color:var(--ink-soft);margin-top:10px;line-height:1.5;}
+  .send-btn{
+    background:linear-gradient(135deg, var(--blue), #1544A8);
+    width:100%;
+    font-size:1rem;
+    padding:14px 22px;
+  }
+  .send-btn:hover{background:linear-gradient(135deg, var(--blue-dark), #0E2E70);}
+  .send-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .attach-btn{background:linear-gradient(135deg, #1E2C3E, #101825);border:1px solid var(--line);}
+  .attach-btn:hover{background:linear-gradient(135deg, #263850, #14202F);}
+  .ocr-status{
+    font-size:0.82rem;
+    color:var(--highlight);
+    margin:10px 2px 0;
+    min-height:1.2em;
+  }
+  .doc-block{display:none;}
+  .doc-block.show{display:block;}
+  .file-cell{display:flex;align-items:center;gap:8px;justify-content:flex-end;}
+  .file-cell img{width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--line);}
+  .file-cell a{
+    font-size:0.78rem;
+    color:var(--highlight);
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .file-cell a:hover{text-decoration:underline;}
+  .client-block{display:none;}
+  .client-block.show{display:block;}
+  .client-msg{
+    font-family:"SF Mono","Consolas",monospace;
+    font-size:0.95rem;
+    line-height:2;
+    white-space:pre-wrap;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px;
+    color:var(--ink);
+  }
+  .client-actions{display:flex;justify-content:flex-end;margin-top:14px;}
+  .copied-msg{
+    font-size:0.82rem;
+    color:var(--highlight);
+    margin-left:10px;
+    align-self:center;
+    opacity:0;
+    transition:opacity 0.2s;
+  }
+  .copied-msg.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-mark">C</div>
+    <div>
+      <div class="brand-name">Consignado CLT</div>
+      <div class="brand-tag">Simulador de amortização</div>
+    </div>
+  </div>
+  <h1>Simule e envie para o cliente</h1>
+  <p class="sub">Informe os dados do empréstimo consignado (CLT) para ver a tabela completa e montar a mensagem pronta para enviar ao cliente.</p>
+
+  <div class="card">
+    <h2>Dados da simulação</h2>
+    <div class="grid">
+      <div class="field">
+        <label for="valor">Valor liberado (R$)</label>
+        <input type="number" id="valor" value="20000" min="0" step="100">
+      </div>
+      <div class="field">
+        <label for="prazo">Prazo (meses)</label>
+        <input type="number" id="prazo" value="36" min="1" step="1">
+      </div>
+      <div class="field">
+        <label for="taxa">Taxa de juros ao mês (%)</label>
+        <input type="number" id="taxa" value="1.8" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label for="sistema">Sistema de amortização</label>
+        <select id="sistema">
+          <option value="price">Price (parcelas fixas)</option>
+          <option value="sac">SAC (parcelas decrescentes)</option>
+        </select>
+      </div>
+      <div class="field" id="parcelaInformadaField">
+        <label for="parcelaInformada">Parcela exata do banco (opcional, só para Price)</label>
+        <input type="number" id="parcelaInformada" placeholder="deixe em branco para calcular" min="0" step="0.01">
+      </div>
+    </div>
+    <p class="note">Se você já sabe a parcela exata cobrada pelo banco (sistema Price), informe acima — a simulação usa esse valor no lugar do calculado, ficando mais precisa. No SAC a parcela nunca é fixa, então esse campo não se aplica.</p>
+
+    <div class="field full" style="margin-top:6px;">
+      <label>Quitação antecipada — em quanto tempo o cliente quer quitar?</label>
+      <div class="preset-group" id="presetGroup">
+        <button type="button" class="preset-btn active" data-meses="0">Prazo normal</button>
+        <button type="button" class="preset-btn" data-meses="6">6 meses</button>
+        <button type="button" class="preset-btn" data-meses="12">12 meses</button>
+        <button type="button" class="preset-btn" data-meses="18">18 meses</button>
+        <button type="button" class="preset-btn" data-meses="24">24 meses</button>
+        <input type="number" id="mesesPersonalizado" placeholder="outro (meses)" min="1" style="width:120px;">
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:14px;">
+      <div class="field">
+        <label for="amortExtra">Amortização extra mensal (R$)</label>
+        <input type="number" id="amortExtra" value="0" min="0" step="10">
+      </div>
+    </div>
+    <p class="note" id="extraNote">Escolha um prazo acima para calcular automaticamente quanto amortizar por mês — ou informe o valor manualmente aqui.</p>
+
+    <label class="compare-toggle" style="margin-top:18px;">
+      <input type="checkbox" id="compareToggle">
+      Comparar com outra taxa (ex: crédito pessoal sem consignação)
+    </label>
+
+    <div class="grid" id="compareFields">
+      <div class="field">
+        <label for="taxaComp">Taxa de comparação ao mês (%)</label>
+        <input type="number" id="taxaComp" value="4.5" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label for="sistemaComp">Sistema da comparação</label>
+        <select id="sistemaComp">
+          <option value="price">Price (parcelas fixas)</option>
+          <option value="sac">SAC (parcelas decrescentes)</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="calcBtn">Calcular</button>
+  </div>
+
+  <div class="results" id="results">
+    <div class="summary" id="summary"></div>
+    <div class="card">
+      <h2 id="tableTitle">Tabela de amortização</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Mês</th><th>Parcela</th><th>Juros</th><th>Amortização</th><th>Saldo devedor</th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <p class="note">Valores em R$, simulação simplificada (não considera IOF, seguro ou tarifas adicionais).</p>
+    </div>
+
+    <div class="send-row">
+      <button class="send-btn" id="sendBtn">Encaminhar para cliente</button>
+      <button class="send-btn attach-btn" id="attachBtn">📎 Anexar documento</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,.pdf" multiple style="display:none;">
+    <p class="ocr-status" id="ocrStatus"></p>
+
+    <div class="card doc-block" id="docBlock">
+      <h2>Documentos anexados</h2>
+      <p class="section-note">Cada arquivo anexado é convertido para JPG quando possível e entra na tabela abaixo com data/horário — qualquer um com esta tela aberta pode baixar o arquivo salvo aqui. Nome e CPF são preenchidos automaticamente quando o sistema consegue ler o documento; quando não consegue, o registro fica só com o horário mesmo.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Horário</th><th>Nome do cliente</th><th>CPF</th><th>Arquivo</th></tr></thead>
+          <tbody id="docTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card client-block" id="clientBlock">
+      <h2>Mensagem para o cliente</h2>
+      <div class="client-msg" id="clientMsg"></div>
+      <div class="client-actions">
+        <button class="secondary" id="copyBtn">Copiar mensagem</button>
+        <span class="copied-msg" id="copiedMsg">Copiado!</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+</script>
+<script>
+function fmt(n){
+  return n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function gerarTabela(valor, taxaMensalPct, prazo, sistema, parcelaOverride){
+  const i = taxaMensalPct / 100;
+  const linhas = [];
+  let saldo = valor;
+  let totalPago = 0;
+  let totalJuros = 0;
+
+  if(sistema === 'price'){
+    const parcela = parcelaOverride > 0 ? parcelaOverride : (i === 0 ? valor / prazo : valor * i / (1 - Math.pow(1+i, -prazo)));
+    for(let m = 1; m <= prazo; m++){
+      const juros = saldo * i;
+      const amort = parcela - juros;
+      saldo = Math.max(saldo - amort, 0);
+      linhas.push({mes:m, parcela, juros, amort, saldo});
+      totalPago += parcela;
+      totalJuros += juros;
+    }
+  } else {
+    // SAC: a amortização é sempre constante e a parcela decresce a cada mês
+    // (a "parcela exata do banco" não se aplica aqui, pois no SAC ela nunca é fixa)
+    const amortConst = valor / prazo;
+    for(let m = 1; m <= prazo; m++){
+      const juros = saldo * i;
+      const parcela = amortConst + juros;
+      saldo = Math.max(saldo - amortConst, 0);
+      linhas.push({mes:m, parcela, juros, amort:amortConst, saldo});
+      totalPago += parcela;
+      totalJuros += juros;
+    }
+  }
+
+  return {linhas, totalPago, totalJuros, parcelaPrimeira: linhas[0].parcela};
+}
+
+// Simula quitação antecipada quando existe amortização extra mensal
+function simularComAmortizacaoExtra(valor, taxaMensalPct, prazo, sistema, parcelaOverride, extra){
+  const i = taxaMensalPct / 100;
+  let saldo = valor;
+  let totalPago = 0;
+  let meses = 0;
+  const amortConstSac = valor / prazo;
+  const parcelaPrice = parcelaOverride > 0 ? parcelaOverride : (i === 0 ? valor / prazo : valor * i / (1 - Math.pow(1+i, -prazo)));
+
+  while(saldo > 0.01 && meses < 1200){
+    meses++;
+    const juros = saldo * i;
+    let amortNormal = sistema === 'price' ? (parcelaPrice - juros) : amortConstSac;
+    let amortTotal = amortNormal + extra;
+    if(amortTotal >= saldo){
+      totalPago += juros + saldo;
+      saldo = 0;
+    } else {
+      saldo -= amortTotal;
+      totalPago += juros + amortTotal;
+    }
+  }
+  return {meses, totalPago, totalJuros: totalPago - valor};
+}
+
+// Calcula direto (fórmula, sem tentativa e erro) o valor de amortização extra
+// necessário por mês para quitar o saldo em "mesesAlvo" meses.
+function calcularExtraNecessaria(valor, taxaMensalPct, prazoOriginal, sistema, parcelaBase, mesesAlvo){
+  const i = taxaMensalPct / 100;
+  if(!mesesAlvo || mesesAlvo <= 0 || mesesAlvo >= prazoOriginal) return 0;
+
+  if(sistema === 'price'){
+    const pagamentoNecessario = i === 0
+      ? valor / mesesAlvo
+      : valor * i / (1 - Math.pow(1+i, -mesesAlvo));
+    return Math.max(pagamentoNecessario - parcelaBase, 0);
+  } else {
+    const amortNecessaria = valor / mesesAlvo;
+    const amortAtual = valor / prazoOriginal;
+    return Math.max(amortNecessaria - amortAtual, 0);
+  }
+}
+
+document.getElementById('compareToggle').addEventListener('change', function(){
+  document.getElementById('compareFields').classList.toggle('show', this.checked);
+});
+
+// Sistema SAC não tem parcela fixa: esconde o campo de parcela informada
+function atualizarCampoParcela(){
+  const sac = document.getElementById('sistema').value === 'sac';
+  const campo = document.getElementById('parcelaInformadaField');
+  campo.classList.toggle('disabled', sac);
+  if(sac) document.getElementById('parcelaInformada').value = '';
+}
+document.getElementById('sistema').addEventListener('change', atualizarCampoParcela);
+atualizarCampoParcela();
+
+let ultimaSimulacao = null;
+let mesesAlvoAtual = 0;
+
+function aplicarPreset(meses){
+  mesesAlvoAtual = meses;
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.meses) === meses);
+  });
+  if(meses > 0) document.getElementById('mesesPersonalizado').value = '';
+  recalcularExtraPorPreset();
+  document.getElementById('calcBtn').click();
+}
+
+function recalcularExtraPorPreset(){
+  if(mesesAlvoAtual <= 0) return;
+  const valor = parseFloat(document.getElementById('valor').value) || 0;
+  const prazo = parseInt(document.getElementById('prazo').value) || 1;
+  const taxa = parseFloat(document.getElementById('taxa').value) || 0;
+  const sistema = document.getElementById('sistema').value;
+  const parcelaOverride = parseFloat(document.getElementById('parcelaInformada').value) || 0;
+  const base = gerarTabela(valor, taxa, prazo, sistema, parcelaOverride);
+  const extra = calcularExtraNecessaria(valor, taxa, prazo, sistema, base.parcelaPrimeira, mesesAlvoAtual);
+  // Arredonda para CIMA (nunca para baixo) — evita sobrar centavos de saldo
+  // que empurrariam a quitação para um mês a mais do que o necessário.
+  const extraArredondada = Math.ceil(extra * 100) / 100;
+  document.getElementById('amortExtra').value = extraArredondada.toFixed(2);
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', function(){
+    aplicarPreset(parseInt(this.dataset.meses));
+  });
+});
+
+document.getElementById('mesesPersonalizado').addEventListener('input', function(){
+  const meses = parseInt(this.value) || 0;
+  if(meses > 0){
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    mesesAlvoAtual = meses;
+    recalcularExtraPorPreset();
+  }
+});
+
+// Se o usuário editar a amortização extra manualmente, os presets deixam de valer
+document.getElementById('amortExtra').addEventListener('input', function(){
+  mesesAlvoAtual = 0;
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.meses === '0');
+  });
+  document.getElementById('mesesPersonalizado').value = '';
+});
+
+function renderTabela(linhas){
+  const body = document.getElementById('tableBody');
+  body.innerHTML = linhas.map(l => `
+    <tr>
+      <td>${l.mes}</td>
+      <td>${fmt(l.parcela)}</td>
+      <td>${fmt(l.juros)}</td>
+      <td>${fmt(l.amort)}</td>
+      <td>${fmt(l.saldo)}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('calcBtn').addEventListener('click', function(){
+  const valor = parseFloat(document.getElementById('valor').value) || 0;
+  const prazo = parseInt(document.getElementById('prazo').value) || 1;
+  const taxa = parseFloat(document.getElementById('taxa').value) || 0;
+  const sistema = document.getElementById('sistema').value;
+  const parcelaOverride = parseFloat(document.getElementById('parcelaInformada').value) || 0;
+  const extra = parseFloat(document.getElementById('amortExtra').value) || 0;
+  const comparar = document.getElementById('compareToggle').checked;
+
+  const base = gerarTabela(valor, taxa, prazo, sistema, parcelaOverride);
+  const comExtra = simularComAmortizacaoExtra(valor, taxa, prazo, sistema, parcelaOverride, extra);
+
+  const summary = document.getElementById('summary');
+  let cards = `
+    <div class="stat">
+      <div class="label">Parcela</div>
+      <div class="value">R$ ${fmt(base.parcelaPrimeira)}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Total pago</div>
+      <div class="value">R$ ${fmt(base.totalPago)}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Total de juros</div>
+      <div class="value">R$ ${fmt(base.totalJuros)}</div>
+    </div>
+  `;
+
+  if(extra > 0){
+    const economiaExtra = base.totalJuros - comExtra.totalJuros;
+    cards += `
+      <div class="stat savings">
+        <div class="label">Quita em</div>
+        <div class="value">${comExtra.meses} meses</div>
+      </div>
+      <div class="stat savings">
+        <div class="label">Economia c/ amortização extra</div>
+        <div class="value">R$ ${fmt(economiaExtra)}</div>
+      </div>
+    `;
+  }
+
+  document.getElementById('tableTitle').textContent =
+    `Tabela de amortização — ${sistema === 'price' ? 'Price' : 'SAC'}`;
+
+  if(comparar){
+    const taxaComp = parseFloat(document.getElementById('taxaComp').value) || 0;
+    const sistemaComp = document.getElementById('sistemaComp').value;
+    const comp = gerarTabela(valor, taxaComp, prazo, sistemaComp, 0);
+    const economiaComp = comp.totalPago - base.totalPago;
+
+    cards += `
+      <div class="stat">
+        <div class="label">Total pago na comparação</div>
+        <div class="value">R$ ${fmt(comp.totalPago)}</div>
+      </div>
+      <div class="stat savings">
+        <div class="label">Economia vs. comparação</div>
+        <div class="value">R$ ${fmt(economiaComp)}</div>
+      </div>
+    `;
+  }
+
+  summary.innerHTML = cards;
+  renderTabela(base.linhas);
+  document.getElementById('results').classList.add('show');
+  document.getElementById('clientBlock').classList.remove('show');
+
+  ultimaSimulacao = {valor, prazo, taxa, sistema, extra, base, comExtra};
+});
+
+document.getElementById('sendBtn').addEventListener('click', function(){
+  if(!ultimaSimulacao) return;
+  const {valor, prazo, extra, base, comExtra} = ultimaSimulacao;
+
+  const economia = base.totalJuros - comExtra.totalJuros;
+  const reducaoPrazo = extra > 0 ? Math.max(prazo - comExtra.meses, 0) : 0;
+  const pagamentoMensal = base.parcelaPrimeira + extra;
+
+  const linhasQuitacao = extra > 0
+    ? `📉 Com amortização: quita em aproximadamente ${comExtra.meses} meses\n💰 Total estimado: R$ ${fmt(comExtra.totalPago)}\n💸 Economia estimada: R$ ${fmt(economia)} em juros\n⏳ Redução do prazo: ${reducaoPrazo} meses`
+    : `📉 Com amortização: informe um valor de amortização extra para simular a quitação antecipada`;
+
+  const msg =
+`💰 Valor liberado: R$ ${fmt(valor)}
+🔹 Parcela: R$ ${fmt(base.parcelaPrimeira)}
+🔹 Prazo ${prazo}x
+🔹 Amortização: R$ ${fmt(extra)}/mês
+💵 Pagamento mensal: R$ ${fmt(pagamentoMensal)}
+📊 Sem amortizar: R$ ${fmt(base.totalPago)}
+${linhasQuitacao}`;
+
+  document.getElementById('clientMsg').textContent = msg;
+  document.getElementById('clientBlock').classList.add('show');
+  document.getElementById('clientBlock').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+document.getElementById('copyBtn').addEventListener('click', function(){
+  const msg = document.getElementById('clientMsg').textContent;
+  navigator.clipboard.writeText(msg).then(function(){
+    const copiedMsg = document.getElementById('copiedMsg');
+    copiedMsg.classList.add('show');
+    setTimeout(() => copiedMsg.classList.remove('show'), 1500);
+  });
+});
+
+// ---------- Anexar documento, converter para JPG e ler nome/CPF ----------
+
+document.getElementById('attachBtn').addEventListener('click', function(){
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', async function(e){
+  const arquivos = Array.from(e.target.files || []);
+  if(arquivos.length === 0) return;
+  document.getElementById('docBlock').classList.add('show');
+
+  for(const arquivo of arquivos){
+    await processarArquivo(arquivo);
+  }
+  document.getElementById('fileInput').value = '';
+});
+
+function setStatus(texto){
+  document.getElementById('ocrStatus').textContent = texto;
+}
+
+async function processarArquivo(arquivo){
+  const horario = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  let dataUrlParaSalvar = null;
+  let nomeArquivoSalvar = arquivo.name;
+  let canvasConvertido = null;
+
+  // 1) Tenta converter para JPG. Se não conseguir (ex: PDF sem suporte neste
+  // ambiente), guarda o arquivo original mesmo assim para poder ser salvo.
+  try{
+    setStatus(`Convertendo "${arquivo.name}" para JPG...`);
+    canvasConvertido = arquivo.type === 'application/pdf'
+      ? await pdfParaCanvas(arquivo)
+      : await imagemParaCanvas(arquivo);
+    dataUrlParaSalvar = canvasConvertido.toDataURL('image/jpeg', 0.92);
+    nomeArquivoSalvar = arquivo.name.replace(/\.[^.]+$/, '') + '.jpg';
+  } catch(err){
+    console.warn('Conversão para JPG não disponível neste ambiente:', err);
+    try{
+      dataUrlParaSalvar = await arquivoParaDataUrl(arquivo);
+    } catch(err2){
+      console.warn('Não foi possível nem ler o arquivo original:', err2);
+    }
+  }
+
+  // 2) Tenta ler nome e CPF do documento. Se não conseguir (sem internet,
+  // ambiente bloqueando leitura, etc.), o registro segue só com o horário.
+  let nome = '—', cpf = '—';
+  if(canvasConvertido){
+    try{
+      setStatus(`Lendo "${arquivo.name}" (nome e CPF)...`);
+      const texto = await extrairTexto(canvasConvertido);
+      const extraido = extrairNomeCpf(texto);
+      nome = extraido.nome;
+      cpf = extraido.cpf;
+    } catch(err){
+      console.warn('Leitura automática indisponível neste ambiente:', err);
+    }
+  }
+
+  adicionarLinhaTabela(horario, nome, cpf, nomeArquivoSalvar, dataUrlParaSalvar);
+  setStatus('');
+}
+
+function arquivoParaDataUrl(arquivo){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(arquivo);
+  });
+}
+
+function imagemParaCanvas(arquivo){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = function(e){
+      img.onload = function(){
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(arquivo);
+  });
+}
+
+async function pdfParaCanvas(arquivo){
+  if(!window.pdfjsLib) throw new Error('pdf.js não carregou (sem internet?)');
+  const buffer = await arquivo.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buffer}).promise;
+  const pagina = await pdf.getPage(1);
+  const viewport = pagina.getViewport({scale: 2});
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await pagina.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+  return canvas;
+}
+
+async function extrairTexto(canvas){
+  if(!window.Tesseract) throw new Error('Tesseract.js não carregou (sem internet?)');
+  const resultado = await Tesseract.recognize(canvas, 'por');
+  return resultado.data.text || '';
+}
+
+function extrairNomeCpf(texto){
+  const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const cpfMatch = texto.match(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/);
+  const cpf = cpfMatch ? cpfMatch[0] : 'Não identificado';
+
+  let nome = 'Não identificado';
+  // Procura uma linha com o rótulo "nome" e usa o texto ao lado ou a linha seguinte
+  const idxRotulo = linhas.findIndex(l => /\bnome\b/i.test(l) && !/sobrenome/i.test(l));
+  if(idxRotulo >= 0){
+    const partes = linhas[idxRotulo].split(/nome[:\s]*/i);
+    if(partes[1] && partes[1].trim().length > 2){
+      nome = partes[1].trim();
+    } else if(linhas[idxRotulo + 1]){
+      nome = linhas[idxRotulo + 1].trim();
+    }
+  } else {
+    // Sem rótulo "nome": tenta a linha mais longa toda em maiúsculas (comum em RG/CNH)
+    const candidata = linhas
+      .filter(l => l.length > 5 && l === l.toUpperCase() && /^[A-ZÀ-Ú\s]+$/.test(l))
+      .sort((a, b) => b.length - a.length)[0];
+    if(candidata) nome = candidata.trim();
+  }
+
+  return {nome, cpf};
+}
+
+function adicionarLinhaTabela(horario, nome, cpf, nomeArquivo, dataUrl){
+  const tbody = document.getElementById('docTableBody');
+  const tr = document.createElement('tr');
+
+  let celulaArquivo = '—';
+  if(dataUrl){
+    const ehImagem = dataUrl.startsWith('data:image');
+    celulaArquivo = `
+      <div class="file-cell">
+        ${ehImagem ? `<img src="${dataUrl}" alt="${nomeArquivo}">` : ''}
+        <a href="${dataUrl}" download="${nomeArquivo}">Salvar</a>
+      </div>
+    `;
+  }
+
+  tr.innerHTML = `<td>${horario}</td><td>${nome}</td><td>${cpf}</td><td>${celulaArquivo}</td>`;
+  tbody.appendChild(tr);
+}
+
+document.getElementById('calcBtn').click();
+</script>
+</body>
+</html>
