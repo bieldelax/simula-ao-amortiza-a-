@@ -247,7 +247,7 @@
     <div class="grid">
       <div class="field">
         <label for="valor">Valor liberado (R$)</label>
-        <input type="number" id="valor" value="20000" min="0" step="100">
+        <input type="text" inputmode="decimal" id="valor" value="20.000,00" placeholder="ex: 1.597,42">
       </div>
       <div class="field">
         <label for="prazo">Prazo (meses)</label>
@@ -255,7 +255,7 @@
       </div>
       <div class="field">
         <label for="taxa">Taxa de juros ao mês (%)</label>
-        <input type="number" id="taxa" value="1.8" min="0" step="0.01">
+        <input type="text" inputmode="decimal" id="taxa" value="1,8" placeholder="ex: 1,8">
       </div>
       <div class="field">
         <label for="sistema">Sistema de amortização</label>
@@ -266,7 +266,7 @@
       </div>
       <div class="field" id="parcelaInformadaField">
         <label for="parcelaInformada">Parcela exata do banco (opcional, só para Price)</label>
-        <input type="number" id="parcelaInformada" placeholder="deixe em branco para calcular" min="0" step="0.01">
+        <input type="text" inputmode="decimal" id="parcelaInformada" placeholder="ex: 1.597,42 (deixe em branco para calcular)">
       </div>
     </div>
     <p class="note">Se você já sabe a parcela exata cobrada pelo banco (sistema Price), informe acima — a simulação usa esse valor no lugar do calculado, ficando mais precisa. No SAC a parcela nunca é fixa, então esse campo não se aplica.</p>
@@ -286,7 +286,7 @@
     <div class="grid" style="margin-top:14px;">
       <div class="field">
         <label for="amortExtra">Amortização extra mensal (R$)</label>
-        <input type="number" id="amortExtra" value="0" min="0" step="10">
+        <input type="text" inputmode="decimal" id="amortExtra" value="0,00" placeholder="ex: 1.597,42">
       </div>
     </div>
     <p class="note" id="extraNote">Escolha um prazo acima para calcular automaticamente quanto amortizar por mês — ou informe o valor manualmente aqui.</p>
@@ -299,7 +299,7 @@
     <div class="grid" id="compareFields">
       <div class="field">
         <label for="taxaComp">Taxa de comparação ao mês (%)</label>
-        <input type="number" id="taxaComp" value="4.5" min="0" step="0.01">
+        <input type="text" inputmode="decimal" id="taxaComp" value="4,5" placeholder="ex: 4,5">
       </div>
       <div class="field">
         <label for="sistemaComp">Sistema da comparação</label>
@@ -368,6 +368,59 @@ if(window.pdfjsLib){
 function fmt(n){
   return n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+
+// Aceita tanto "1597.42" quanto o formato brasileiro "1.597,42" ou "1597,42"
+function parseNumero(str){
+  if(typeof str === 'number') return str;
+  if(!str) return 0;
+  str = String(str).trim().replace(/[^\d,.\-]/g, '');
+  if(str === '') return 0;
+
+  const temVirgula = str.includes(',');
+  const temPonto = str.includes('.');
+
+  if(temVirgula && temPonto){
+    // "1.597,42" -> ponto é milhar, vírgula é decimal
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if(temVirgula){
+    // "1597,42" -> vírgula é decimal
+    str = str.replace(',', '.');
+  } else if(temPonto){
+    // Só ponto: "20.000" (milhar) vs "1500.5" (decimal).
+    // Se o último grupo depois do ponto tem 3 dígitos, é separador de milhar.
+    const partes = str.split('.');
+    const ultima = partes[partes.length - 1];
+    if(partes.length > 2 || ultima.length === 3){
+      str = str.replace(/\./g, '');
+    }
+  }
+
+  const n = parseFloat(str);
+  return isNaN(n) ? 0 : n;
+}
+
+// Reformata um campo de valor em R$ (2 casas) para deixar claro o que foi entendido
+function reformatarCampoMoeda(id){
+  const el = document.getElementById(id);
+  if(el.value.trim() === '') return;
+  const n = parseNumero(el.value);
+  el.value = fmt(n);
+}
+
+// Reformata um campo de taxa (%) trocando ponto por vírgula, sem forçar casas decimais
+function reformatarCampoTaxa(id){
+  const el = document.getElementById(id);
+  if(el.value.trim() === '') return;
+  const n = parseNumero(el.value);
+  el.value = String(n).replace('.', ',');
+}
+
+['valor','parcelaInformada','amortExtra'].forEach(id => {
+  document.getElementById(id).addEventListener('blur', () => reformatarCampoMoeda(id));
+});
+['taxa','taxaComp'].forEach(id => {
+  document.getElementById(id).addEventListener('blur', () => reformatarCampoTaxa(id));
+});
 
 function gerarTabela(valor, taxaMensalPct, prazo, sistema, parcelaOverride){
   const i = taxaMensalPct / 100;
@@ -475,17 +528,17 @@ function aplicarPreset(meses){
 
 function recalcularExtraPorPreset(){
   if(mesesAlvoAtual <= 0) return;
-  const valor = parseFloat(document.getElementById('valor').value) || 0;
+  const valor = parseNumero(document.getElementById('valor').value);
   const prazo = parseInt(document.getElementById('prazo').value) || 1;
-  const taxa = parseFloat(document.getElementById('taxa').value) || 0;
+  const taxa = parseNumero(document.getElementById('taxa').value);
   const sistema = document.getElementById('sistema').value;
-  const parcelaOverride = parseFloat(document.getElementById('parcelaInformada').value) || 0;
+  const parcelaOverride = parseNumero(document.getElementById('parcelaInformada').value);
   const base = gerarTabela(valor, taxa, prazo, sistema, parcelaOverride);
   const extra = calcularExtraNecessaria(valor, taxa, prazo, sistema, base.parcelaPrimeira, mesesAlvoAtual);
   // Arredonda para CIMA (nunca para baixo) — evita sobrar centavos de saldo
   // que empurrariam a quitação para um mês a mais do que o necessário.
   const extraArredondada = Math.ceil(extra * 100) / 100;
-  document.getElementById('amortExtra').value = extraArredondada.toFixed(2);
+  document.getElementById('amortExtra').value = fmt(extraArredondada);
 }
 
 document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -526,12 +579,12 @@ function renderTabela(linhas){
 }
 
 document.getElementById('calcBtn').addEventListener('click', function(){
-  const valor = parseFloat(document.getElementById('valor').value) || 0;
+  const valor = parseNumero(document.getElementById('valor').value);
   const prazo = parseInt(document.getElementById('prazo').value) || 1;
-  const taxa = parseFloat(document.getElementById('taxa').value) || 0;
+  const taxa = parseNumero(document.getElementById('taxa').value);
   const sistema = document.getElementById('sistema').value;
-  const parcelaOverride = parseFloat(document.getElementById('parcelaInformada').value) || 0;
-  const extra = parseFloat(document.getElementById('amortExtra').value) || 0;
+  const parcelaOverride = parseNumero(document.getElementById('parcelaInformada').value);
+  const extra = parseNumero(document.getElementById('amortExtra').value);
   const comparar = document.getElementById('compareToggle').checked;
 
   const base = gerarTabela(valor, taxa, prazo, sistema, parcelaOverride);
@@ -571,7 +624,7 @@ document.getElementById('calcBtn').addEventListener('click', function(){
     `Tabela de amortização — ${sistema === 'price' ? 'Price' : 'SAC'}`;
 
   if(comparar){
-    const taxaComp = parseFloat(document.getElementById('taxaComp').value) || 0;
+    const taxaComp = parseNumero(document.getElementById('taxaComp').value);
     const sistemaComp = document.getElementById('sistemaComp').value;
     const comp = gerarTabela(valor, taxaComp, prazo, sistemaComp, 0);
     const economiaComp = comp.totalPago - base.totalPago;
